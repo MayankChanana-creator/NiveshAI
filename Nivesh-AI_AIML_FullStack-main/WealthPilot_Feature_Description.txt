@@ -1,0 +1,98 @@
+# WEALTHPILOT: AI-POWERED FINANCIAL CO-PILOT
+################################################
+
+OVERVIEW
+ WealthPilot is a sophisticated, AI-driven personal finance management tool integrated
+ within the WealthPulse ecosystem. It acts as an expert financial advisor for Indian
+ users, helping them move from simple expense tracking to strategic wealth building.
+ By analyzing income, spending habits, and risk appetite, WealthPilot generates 
+ customized, actionable financial plans in seconds.
+
+--------------------------------------------------------------------------------
+
+KEY FEATURES & CAPABILITIES
+
+1. DYNAMIC INCOME TRACKING
+   - Support for multiple income streams (Salary, Freelance, Dividends, etc.).
+   - Flexible frequency settings: Monthly, Yearly, or Weekly.
+   - Automatic normalization of income to monthly totals for accurate budgeting.
+
+2. AI EXPENSE ANALYTICS & CATEGORIZATION
+   - Categorizes spending into 7 core segments:
+     * Housing, Food & Dining, Transportation, Utilities, Entertainment, Health, and Other.
+   - Distinguishes between fixed (non-negotiable) and variable (discretionary) expenses.
+   - Expense Health Score: A 0-100 rating that benchmarks users against ideal 
+     financial management standards.
+   - AI Insights: Detailed, textual analysis of spending patterns (e.g., Identifying 
+     high dining out costs or subscription leakage).
+
+3. SMART BUDGET PLANNER (The 50/30/20 Rule)
+   - Uses the gold-standard 50/30/20 budgeting rule as a baseline (Needs/Wants/Savings).
+   - Generates recommended monthly targets for:
+     * Needs (Fixed Costs)
+     * Wants (Variable/Lifestyle Costs)
+     * Savings (Emergency & Liquid Funds)
+     * Investments (Wealth Building)
+   - Provides specific "Budget Tips" based on the user's surplus (e.g., "Automate 
+     savings via SIP", "Build 6-month emergency fund").
+
+4. AUTO INVESTMENT ENGINE
+   - Recommends an "Investable Amount" after securing necessary expenses and savings.
+   - Dynamic Asset Allocation based on the user's selected Risk Profile:
+     * CONSERVATIVE: Focuses on safety and steady returns (Debt Funds, Emergency Funds).
+     * MODERATE: Balanced growth with controlled risk (Equity Mutual Funds, Hybrid).
+     * AGGRESSIVE: High growth focus (Large/Mid/Small-cap Stocks, Crypto).
+   - Allocation Portfolios typically include:
+     * Stocks / Equity Mutual Funds
+     * Debt Mutual Funds
+     * Gold / Commodities
+     * Crypto
+     * Emergency Funds
+   - Investment Rationale: Explains the 'Why' behind every allocation percentage.
+
+5. PORTFOLIO SYNC
+   - Automatically detects and incorporates a user's existing portfolio assets 
+     (Stocks, Mutual Funds, Crypto) to ensure the new recommendations complement 
+     current holdings rather than duplicating them.
+
+--------------------------------------------------------------------------------
+
+USER WORKFLOW (STEP-BY-STEP)
+
+Phase 1: Income Setup
+ - User enters all sources of income and selects frequency.
+ - WealthPilot calculates the total monthly liquidity.
+
+Phase 2: Expense Entry
+ - User lists monthly expenses. 
+ - Users categorize them as Fixed or Variable to help the AI understand flexibility.
+
+Phase 3: Financial Profiling
+ - User provides Age and Risk Profile.
+ - Optional: User can set a specific Monthly Savings Goal.
+ - WealthPilot pulls existing portfolio data from the database.
+
+Phase 4: AI Analysis
+ - The system sends the data to the WealthPilot AI Engine (powered by ASI Cloud).
+ - AI performs deep categorization, budgeting calculations, and investment strategy creation.
+
+Phase 5: Insights & Execution
+ - User receives a visual breakdown (Pie Charts, Bar Graphs) of their financial health.
+ - Actionable tips and specific investment allocations are presented for execution.
+
+--------------------------------------------------------------------------------
+
+TECHNICAL ARCHITECTURE
+
+- Backend Engine: Python (FastAPI)
+- AI Model: ASI Cloud Inference (asi1-mini)
+- Frontend: Next.js (React)
+- Styling: Tailwind CSS
+- Animations: Framer Motion
+- Data Viz: Recharts (High-performance charting library)
+- Icons: Lucide-React
+- Security: JWT-based Auth with existing user session integration
+
+--------------------------------------------------------------------------------
+WealthPilot: Making financial freedom scientific and accessible.
+################################################################################

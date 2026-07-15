@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>AI Video Generator</title>
+
+<style>
+/* ===================== GLOBAL ===================== */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(120deg, #020617, #0f172a, #1e3a8a);
+  animation: bgShift 18s ease-in-out infinite;
+  padding: 40px;
+}
+
+@keyframes bgShift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* ===================== CARD ===================== */
+.container {
+  width: 100%;
+  max-width: 720px;
+  background: rgba(255,255,255,0.06);
+  backdrop-filter: blur(18px);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 20px;
+  padding: 32px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Glow accents */
+.container::before {
+  content: "";
+  position: absolute;
+  inset: -50%;
+  background: radial-gradient(circle, rgba(56,189,248,0.35), transparent 60%);
+  animation: floatGlow 12s linear infinite;
+}
+
+@keyframes floatGlow {
+  0% { transform: translateX(-20%) translateY(-20%); }
+  50% { transform: translateX(20%) translateY(10%); }
+  100% { transform: translateX(-20%) translateY(-20%); }
+}
+
+.container > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ===================== HEADINGS ===================== */
+h2 {
+  margin: 0 0 10px;
+  text-align: center;
+  font-size: 28px;
+  font-weight: 700;
+  background: linear-gradient(to right, #38bdf8, #60a5fa);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.subtitle {
+  text-align: center;
+  color: #c7d2fe;
+  font-size: 14px;
+  margin-bottom: 26px;
+}
+
+/* ===================== INPUTS ===================== */
+input {
+  width: 100%;
+  padding: 14px 16px;
+  margin-bottom: 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: rgba(15,23,42,0.8);
+  color: white;
+  font-size: 15px;
+  outline: none;
+  transition: all 0.25s ease;
+}
+
+input::placeholder {
+  color: #94a3b8;
+}
+
+input:focus {
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 2px rgba(56,189,248,0.25);
+}
+
+/* ===================== BUTTONS ===================== */
+button {
+  width: 100%;
+  padding: 14px;
+  font-size: 16px;
+  font-weight: 700;
+  border-radius: 999px;
+  border: none;
+  cursor: pointer;
+  background: linear-gradient(to right, #38bdf8, #2563eb);
+  color: white;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 10px 30px rgba(37,99,235,0.35);
+}
+
+button:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 16px 40px rgba(56,189,248,0.45);
+}
+
+/* ===================== DOWNLOAD ===================== */
+#download {
+  display: inline-block;
+  margin-top: 18px;
+  text-align: center;
+  text-decoration: none;
+  font-weight: 600;
+  color: #38bdf8;
+  border: 1px solid rgba(56,189,248,0.5);
+  padding: 10px 16px;
+  border-radius: 999px;
+  transition: all 0.25s ease;
+}
+
+#download:hover {
+  background: rgba(56,189,248,0.15);
+}
+
+/* ===================== CANVAS ===================== */
+canvas {
+  display: none;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+  <h2>🎬 AI Video Generator</h2>
+  <div class="subtitle">
+    Create a simple narrated video using images + subtitles
+  </div>
+
+  <input id="t1" placeholder="Subtitle 1">
+  <input id="t2" placeholder="Subtitle 2">
+  <input id="t3" placeholder="Subtitle 3">
+
+  <button onclick="generate()">Generate Video</button>
+  <a id="download" style="display:none">⬇ Download Video</a>
+</div>
+
+<canvas id="canvas" width="1280" height="720"></canvas>
+
+<script>
+const images = [
+  "images/img1.jpeg",
+  "images/img2.jpeg",
+  "images/img3.jpeg"
+];
+
+const audio = new Audio("audio/voice.mpeg");
+
+async function generate() {
+  const subtitles = [
+    t1.value || "",
+    t2.value || "",
+    t3.value || ""
+  ];
+
+  const canvas = document.getElementById("canvas");
+  const ctx = canvas.getContext("2d");
+
+  const stream = canvas.captureStream(30);
+  const recorder = new MediaRecorder(stream);
+  const chunks = [];
+
+  recorder.ondataavailable = e => chunks.push(e.data);
+  recorder.onstop = () => {
+    const blob = new Blob(chunks, { type: "video/webm" });
+    const url = URL.createObjectURL(blob);
+    download.href = url;
+    download.download = "output.webm";
+    download.style.display = "inline-block";
+    download.textContent = "⬇ Download Video";
+  };
+
+  recorder.start();
+  audio.play();
+
+  for (let i = 0; i < images.length; i++) {
+    const img = new Image();
+    img.src = images[i];
+    await img.decode();
+
+    ctx.drawImage(img, 0, 0, 1280, 720);
+
+    ctx.fillStyle = "rgba(0,0,0,0.6)";
+    ctx.fillRect(0, 560, 1280, 160);
+
+    ctx.fillStyle = "white";
+    ctx.font = "48px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText(subtitles[i], 640, 650);
+
+    await new Promise(r => setTimeout(r, audio.duration * 1000 / images.length));
+  }
+
+  recorder.stop();
+}
+</script>
+
+</body>
+</html>
+

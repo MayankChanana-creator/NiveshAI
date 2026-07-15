@@ -1,0 +1,63 @@
+================================================================================
+                               NIVESH AI
+           "Empowering Your Financial Journey, One Step at a Time"
+================================================================================
+
+PROJECT MISSION:
+----------------
+To democratize investing by removing fear and social barriers. Nivesh AI transforms 
+complex financial markets into an easy-to-navigate journey, helping everyone 
+learn, practice, and grow their wealth through advanced AI guidance.
+
+CORE & EXCITING FEATURES:
+-------------------------
+
+1. 🤖 AGENTIC AI LANDING PAGE ASSISTANT (AI DOST)
+   - Integrated with an autonomous Agentic AI system that doesn't just chat, 
+     but analyzes your specific portfolio and market trends in real-time.
+   - Capable of multi-step reasoning: from fetching stock metrics to 
+     providing personalized behavioral insights.
+
+2. 🎙️ GENERATIVE AI AUDIO AVATAR REPRESENTATION
+   - Experience a lifelike 3D digital presence powered by Generative AI.
+   - Features a high-fidelity audio avatar with synchronized lip-sync and 
+     human-quality voice generation, making financial advice feel personal.
+   - Uses cutting-edge TTS (Text-to-Speech) to transform complex data into 
+     easy-to-understand spoken insights.
+
+3. 🛡️ TRADEVERSE SANDBOX (RISK-FREE LEARNING)
+   - A fully functional trading terminal where users can practice without 
+     losing real money.
+   - Build confidence using virtual capital while exploring Stocks, 
+     Mutual Funds, and Cryptocurrency in a safe environment.
+
+4. 🧠 BEHAVIORAL INTELLIGENCE ENGINE (NIVESHAI)
+   - A unique AI engine that focuses on DECISIONS over profits.
+   - Rewards discipline and risk management while flagging psychological 
+     traps like "Panic Selling" or "Revenge Trading."
+   - Specifically designed to build a healthy investor mindset from Day 1.
+
+5. 👤 PERSONALIZED AI INVESTOR PROFILING
+   - Intelligent onboarding that assesses your goals and risk tolerance.
+   - Automatically recommends tailored strategies (Conservative to Aggressive) 
+     and provides tips to help you transition from a beginner to a pro.
+
+6. 🌍 MULTILINGUAL ACCESSIBILITY
+   - Breaking the jargon barrier by providing AI responses in regional 
+     languages.
+   - Ensures that lack of English proficiency is never a barrier to 
+     financial independence.
+
+7. 🎮 GAMIFIED LEARNING & PROGRESSION
+   - A structured journey with levels: Beginner, Intermediate, and Pro.
+   - Track your "Credit Score" based on trading discipline and unlock 
+     exclusive perks as your knowledge grows.
+
+8. 📊 UNIFIED CROSS-ASSET DASHBOARD
+   - A single, beautiful interface to track your entire wealth: 
+     from Stocks and Mutual Funds to Cryptocurrencies.
+   - No more switching between apps—everything you need is in one place.
+
+--------------------------------------------------------------------------------
+         REDUCE FEAR. LEARN DISCIPLINE. BUILD WEALTH. IN THAT ORDER.
+--------------------------------------------------------------------------------

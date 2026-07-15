@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>ArthSaarthi | Investor Behaviour Analysis</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: Inter, system-ui, Arial, sans-serif;
+    }
+
+    body {
+      background: radial-gradient(circle at top, #0b1225, #020617);
+      color: #e5e7eb;
+      min-height: 100vh;
+    }
+
+    /* NAVBAR */
+    header {
+      background: linear-gradient(90deg, #020617, #0b102b);
+      padding: 16px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #1f2937;
+    }
+
+    header h1 {
+      font-size: 22px;
+      color: #22d3ee;
+      font-weight: 700;
+    }
+
+    header nav a {
+      margin-left: 22px;
+      color: #cbd5f5;
+      text-decoration: none;
+      font-size: 14px;
+    }
+
+    /* PAGE TITLE */
+    .page-title {
+      text-align: center;
+      margin: 40px 0 20px;
+      font-size: 34px;
+      font-weight: 700;
+      color: #22d3ee;
+    }
+
+    /* MAIN CONTAINER */
+    .container {
+      max-width: 900px;
+      margin: auto;
+      padding: 24px;
+    }
+
+    .card {
+      background: #181f31;
+      border-radius: 18px;
+      padding: 28px;
+      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.45);
+    }
+
+    .card h2 {
+      font-size: 22px;
+      color: #e0f2fe;
+      margin-bottom: 6px;
+    }
+
+    .subtitle {
+      font-size: 14px;
+      color: #9ca3af;
+      margin-bottom: 24px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+
+    label {
+      font-size: 13px;
+      color: #cbd5f5;
+      margin-bottom: 6px;
+      display: block;
+    }
+
+    input {
+      width: 100%;
+      background: #232b44;
+      border: none;
+      border-radius: 12px;
+      padding: 14px;
+      color: #fff;
+      font-size: 15px;
+    }
+
+    button {
+      margin-top: 20px;
+      padding: 14px;
+      width: 100%;
+      border-radius: 14px;
+      border: none;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      background: linear-gradient(90deg, #06b6d4, #3b82f6);
+      color: white;
+      transition: transform 0.2s ease;
+    }
+
+    button:hover {
+      transform: scale(1.03);
+    }
+
+    /* RESULT */
+    .result {
+      margin-top: 30px;
+      display: none;
+      background: linear-gradient(180deg, #0b1225, #020617);
+      border-radius: 20px;
+      padding: 30px;
+      min-height: 70vh;
+      border: 1px solid #1e293b;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.65);
+    }
+
+
+    .badge {
+      display: inline-block;
+      padding: 8px 18px;
+      border-radius: 999px;
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 14px;
+    }
+
+    .explanation {
+      background: #020617;
+      border-radius: 16px;
+      padding: 24px;
+      font-size: 15px;
+      line-height: 1.8;
+      color: #e5e7eb;
+      max-height: none;
+      white-space: pre-line;
+    }
+
+
+    footer {
+      margin-top: 50px;
+      text-align: center;
+      font-size: 12px;
+      color: #6b7280;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- NAVBAR -->
+  <header>
+    <h1>₹ ArthSaarthi</h1>
+
+  </header>
+
+  <h1 class="page-title">Investor Behaviour Analysis</h1>
+
+  <div class="container">
+    <div class="card">
+      <h2>Analyze Emotional Investment Behaviour</h2>
+      <p class="subtitle">
+        Uses real NAV, volatility & loss patterns to explain investor psychology.
+      </p>
+
+      <div class="grid">
+        <div>
+          <label>Mutual Fund Scheme Code</label>
+          <input id="schemeCode" value="100036" />
+        </div>
+        <div>
+          <label>Holding Days</label>
+          <input id="holdingDays" type="number" placeholder="e.g. 30" />
+        </div>
+      </div>
+
+      <button onclick="analyzeBehaviour()">Run Behaviour Analysis</button>
+
+      <div id="result" class="result">
+        <div id="badge" class="badge"></div>
+        <div id="explanation" class="explanation"></div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    Behavioural insights are educational — not investment advice.
+  </footer>
+  <script>
+    function formatExplanation(text) {
+      return text
+        .replace(/\*\*(.*?)\*\*/g, "<strong style='color:#67e8f9'>$1</strong>")
+        .replace(/- (.*?)(\n|$)/g, "• $1<br>")
+        .replace(/\n\n/g, "<br><br>");
+    }
+
+    async function analyzeBehaviour() {
+      const scheme = document.getElementById("schemeCode").value;
+      const days = document.getElementById("holdingDays").value;
+
+      if (!days) {
+        alert("Please enter holding days");
+        return;
+      }
+
+      const btn = document.querySelector("button");
+      const result = document.getElementById("result");
+      const badge = document.getElementById("badge");
+      const explanation = document.getElementById("explanation");
+
+      // 🔄 Loading state
+      btn.innerText = "Analyzing investor behaviour...";
+      btn.disabled = true;
+
+      result.style.display = "block";
+      badge.style.background = "#64748b22";
+      badge.style.color = "#94a3b8";
+      badge.innerText = "Analyzing...";
+      explanation.innerText = "Reading NAV trends, volatility and loss psychology...";
+
+      try {
+        const res = await fetch(
+          `http://127.0.0.1:8000/api/ai/behaviour-mf?scheme_code=${scheme}&holding_days=${days}`,
+          { method: "POST" }
+        );
+
+        const data = await res.json();
+
+        const behaviour = data.predicted_behaviour;
+        let color = "#64748b";
+
+        if (behaviour.includes("Panic")) color = "#ef4444";
+        else if (behaviour.includes("Nervous")) color = "#f59e0b";
+        else if (behaviour.includes("Satisfied")) color = "#22c55e";
+        else if (behaviour.includes("Greedy")) color = "#a855f7";
+
+        badge.style.background = color + "22";
+        badge.style.color = color;
+        badge.innerText = behaviour;
+
+        explanation.innerHTML = formatExplanation(data.explanation);
+
+
+      } catch (error) {
+        badge.style.color = "#ef4444";
+        badge.innerText = "Error";
+        explanation.innerText = "Failed to analyze behaviour. Please try again.";
+        console.error(error);
+      } finally {
+        // 🔁 Restore button
+        btn.innerText = "Run Behaviour Analysis";
+        btn.disabled = false;
+      }
+    }
+  </script>
+
+
+</body>
+
+</html>
