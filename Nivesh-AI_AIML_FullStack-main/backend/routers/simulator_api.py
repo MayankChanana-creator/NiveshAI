@@ -16,21 +16,41 @@ class SimulationRequest(BaseModel):
 @router.post("/simulate")
 async def run_simulation(req: SimulationRequest):
     try:
-        history_data = []
         if req.item_type == "stock":
-            # Fetch 1 year of history
-            rows = await get_stock_history(req.symbol, period="1y", interval="1d")
-            history_data = [{"date": r["date"], "close": r["close"]} for r in rows]
+            # Fetch 1 year of history with fallback for .NS suffix
+            rows = []
+            try:
+                rows = await get_stock_history(req.symbol, period="1y", interval="1d")
+            except Exception:
+                if not req.symbol.endswith(".NS") and not req.symbol.endswith(".BO"):
+                    rows = await get_stock_history(f"{req.symbol}.NS", period="1y", interval="1d")
+                else:
+                    raise
+            history_data = [{"date": r["date"], "close": float(r["close"])} for r in rows if r.get("close") is not None]
         
         elif req.item_type == "mutual_fund":
             nav_data = fetch_historical_nav(req.symbol)
             if not nav_data:
                 raise HTTPException(status_code=404, detail="No MF data found")
             
-            # Convert to standard format
-            history_data = [{"date": r["date"], "close": float(r["nav"])} for r in nav_data]
-            # Take last ~250 days (approx 1 year of trading)
-            history_data = history_data[-250:]
+            # nav_data is returned newest-first from API (e.g. DD-MM-YYYY).
+            # Take recent 250 days and reverse to get chronological order (oldest to newest).
+            recent_250 = nav_data[:250]
+            chronological_nav = list(reversed(recent_250))
+            
+            history_data = []
+            for r in chronological_nav:
+                try:
+                    # Convert date from DD-MM-YYYY to YYYY-MM-DD for consistency
+                    raw_date = r.get("date", "")
+                    if "-" in raw_date and len(raw_date.split("-")[0]) == 2:
+                        parts = raw_date.split("-")
+                        fmt_date = f"{parts[2]}-{parts[1]}-{parts[0]}"
+                    else:
+                        fmt_date = raw_date
+                    history_data.append({"date": fmt_date, "close": float(r["nav"])})
+                except (ValueError, TypeError):
+                    continue
 
         if not history_data:
             raise HTTPException(status_code=404, detail="Could not fetch history for simulation")

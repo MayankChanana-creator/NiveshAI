@@ -1,21 +1,15 @@
 import { NextResponse } from 'next/server';
 
 export async function DELETE(request, { params }) {
-  const { userId, itemId } = params;
+  const { userId, itemId } = await params;
   
   try {
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
     console.log('Removing portfolio item:', { userId, itemId });
 
-    if (!process.env.NEXT_PUBLIC_API_URL) {
-      console.error('NEXT_PUBLIC_API_URL is not defined');
-      return NextResponse.json(
-        { detail: 'API URL configuration error' },
-        { status: 500 }
-      );
-    }
-
+    const encodedUserId = encodeURIComponent(userId);
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/portfolio/${userId}/${itemId}`,
+      `${backendUrl}/api/portfolio/${encodedUserId}/${itemId}`,
       { method: 'DELETE' }
     );
 

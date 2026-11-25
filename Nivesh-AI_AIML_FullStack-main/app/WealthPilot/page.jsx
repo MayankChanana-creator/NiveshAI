@@ -92,7 +92,9 @@ export default function WealthPilotPage() {
   const fetchWealthPilotData = async () => {
     setIsInitialLoading(true);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/wealth-pilot/data/${user.sub}`);
+      const userId = encodeURIComponent(user?.sub || '');
+      if (!userId) return;
+      const res = await fetch(`/api/wealth-pilot/data/${userId}`);
       if (res.ok) {
         const data = await res.json();
         if (data.incomes && data.incomes.length > 0) setIncomes(data.incomes);
@@ -114,7 +116,7 @@ export default function WealthPilotPage() {
     try {
       const userId = encodeURIComponent(user?.sub || '');
       if (!userId) return;
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/portfolio/${userId}`);
+      const res = await fetch(`/api/portfolio/${userId}`);
       if (res.ok) {
         const data = await res.json();
         setPortfolio(data.map(i => ({ symbol: i.symbol, name: i.name, item_type: i.item_type })));
@@ -150,7 +152,7 @@ export default function WealthPilotPage() {
       if (validIncomes.length === 0) throw new Error("Please add at least one income source");
       if (validExpenses.length === 0) throw new Error("Please add at least one expense");
 
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/wealth-pilot/analyze`, {
+      const res = await fetch(`/api/wealth-pilot/analyze`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -184,7 +186,8 @@ export default function WealthPilotPage() {
     if (!user) return;
     setIsSaving(true);
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/wealth-pilot/save/${user.sub}`, {
+      const userId = encodeURIComponent(user.sub || '');
+      await fetch(`/api/wealth-pilot/save/${userId}`, {
          method: 'POST',
          headers: {'Content-Type': 'application/json'},
          body: JSON.stringify({
@@ -209,7 +212,7 @@ export default function WealthPilotPage() {
     const formData = new FormData();
     formData.append('file', file);
     try {
-       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/wealth-pilot/ocr-scan`, {
+       const res = await fetch(`/api/wealth-pilot/ocr-scan`, {
          method: 'POST',
          body: formData
        });
@@ -227,6 +230,8 @@ export default function WealthPilotPage() {
          }]);
          setOcrSuccessMsg(`Successfully added ₹${data.amount || 0} from ${merchantName}`);
          setTimeout(() => setOcrSuccessMsg(null), 4000);
+       } else {
+         console.error("OCR upload request failed with status", res.status);
        }
     } catch(err) {
        console.error("OCR upload failed", err);

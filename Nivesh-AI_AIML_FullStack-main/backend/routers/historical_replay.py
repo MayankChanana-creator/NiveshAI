@@ -130,18 +130,20 @@ async def get_replay_data(
         for _, row in df.iterrows():
             try:
                 val_date = row[date_col]
+                val_dt = pd.to_datetime(val_date)
                 if hasattr(val_date, 'strftime'):
                     date_str = val_date.strftime("%Y-%m-%d")
-                    row_dt = pd.to_datetime(val_date).tz_localize(None) if hasattr(val_date, 'tz') else pd.to_datetime(val_date)
                 else:
                     date_str = str(val_date)[:10]
-                    row_dt = pd.to_datetime(date_str)
+
+                row_dt = val_dt.tz_convert(None) if getattr(val_dt, 'tz', None) is not None else val_dt
 
                 # Calculate cumulative split factor
                 multiplier = 1.0
-                if not splits.empty:
+                if splits is not None and not splits.empty:
                     splits_clean = splits.copy()
-                    splits_clean.index = splits_clean.index.tz_localize(None)
+                    if getattr(splits_clean.index, 'tz', None) is not None:
+                        splits_clean.index = splits_clean.index.tz_convert(None)
                     future_splits = splits_clean[splits_clean.index > row_dt]
                     for split_val in future_splits:
                         if split_val > 0:

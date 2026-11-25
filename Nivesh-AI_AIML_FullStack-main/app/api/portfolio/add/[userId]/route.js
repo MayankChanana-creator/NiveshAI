@@ -1,22 +1,15 @@
 import { NextResponse } from 'next/server';
 
 export async function POST(request, { params }) {
-  const { userId } = params;
+  const { userId } = await params;
   
   try {
     const body = await request.json();
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
     console.log('Received request to add portfolio item:', { userId, body });
 
-    // Check if NEXT_PUBLIC_API_URL is defined
-    if (!process.env.NEXT_PUBLIC_API_URL) {
-      console.error('NEXT_PUBLIC_API_URL is not defined');
-      return NextResponse.json(
-        { detail: 'API URL configuration error' },
-        { status: 500 }
-      );
-    }
-
-    const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/portfolio/add/${userId}`;
+    const encodedUserId = encodeURIComponent(userId);
+    const apiUrl = `${backendUrl}/api/portfolio/add/${encodedUserId}`;
     console.log('Calling FastAPI endpoint:', apiUrl);
 
     const response = await fetch(apiUrl, {
@@ -41,11 +34,7 @@ export async function POST(request, { params }) {
       );
     }
 
-    if (!response.ok) {
-      return NextResponse.json(responseData, { status: response.status });
-    }
-
-    return NextResponse.json(responseData);
+    return NextResponse.json(responseData, { status: response.status });
   } catch (error) {
     console.error('Error in portfolio add API route:', error);
     return NextResponse.json(

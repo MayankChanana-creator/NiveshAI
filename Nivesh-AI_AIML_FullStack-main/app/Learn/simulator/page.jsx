@@ -43,7 +43,7 @@ export default function SimulatorPage() {
     setResult(null);
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/simulator/simulate`, {
+      const res = await fetch(`/api/simulator/simulate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

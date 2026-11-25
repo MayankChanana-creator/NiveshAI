@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Navbar from '../../components/Navbar';
 import Chatbot from '../../components/Chatbot';
 import Link from 'next/link';
@@ -19,7 +19,8 @@ import {
   Trophy,
   Skull,
   Search,
-  ArrowLeft
+  ArrowLeft,
+  Zap
 } from 'lucide-react';
 import { 
   XAxis, 
@@ -45,9 +46,11 @@ export default function HistoricalReplay() {
   const [replayData, setReplayData] = useState(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [speed, setSpeed] = useState(800);
+  const [speedMultiplier, setSpeedMultiplier] = useState(1);
+  const [speed, setSpeed] = useState(800); // interval ms (800ms / speedMultiplier)
   
   // State for Trading
+  const [initialBalance, setInitialBalance] = useState(100000);
   const [balance, setBalance] = useState(100000);
   const [shares, setShares] = useState(0);
   const [tradeQty, setTradeQty] = useState(1);
@@ -59,6 +62,15 @@ export default function HistoricalReplay() {
   const [showNews, setShowNews] = useState(false);
 
   const timerRef = useRef(null);
+  const replayDataRef = useRef(replayData);
+  const currentIndexRef = useRef(currentIndex);
+  const isPlayingRef = useRef(isPlaying);
+  const isGameOverRef = useRef(isGameOver);
+
+  useEffect(() => { replayDataRef.current = replayData; }, [replayData]);
+  useEffect(() => { currentIndexRef.current = currentIndex; }, [currentIndex]);
+  useEffect(() => { isPlayingRef.current = isPlaying; }, [isPlaying]);
+  useEffect(() => { isGameOverRef.current = isGameOver; }, [isGameOver]);
 
   useEffect(() => {
     fetchEvents();
@@ -66,7 +78,7 @@ export default function HistoricalReplay() {
 
   const fetchEvents = async () => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/replay/events`);
+      const res = await fetch(`/api/replay/events`);
       if (res.ok) {
         const data = await res.json();
         setEvents(data);
@@ -82,15 +94,22 @@ export default function HistoricalReplay() {
     setLoadingEvents(true);
     setError(null);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/replay/data?event_id=${eventId}&symbol=${symbol}`);
+      const res = await fetch(`/api/replay/data?event_id=${eventId}&symbol=${encodeURIComponent(symbol)}`);
       if (res.ok) {
         const data = await res.json();
         setReplayData(data);
         setSelectedEvent(events.find(e => e.id === eventId));
         setSelectedSymbol(symbol);
         setCurrentIndex(20);
-        setBalance(100000);
+        
+        // Dynamically set realistic capital based on initial price (at least 100 shares worth or 100k)
+        const initPrice = data.candles[20]?.close || 100;
+        const cap = Math.max(100000, Math.ceil(initPrice * 100));
+        setInitialBalance(cap);
+        setBalance(cap);
+        
         setShares(0);
+        setTradeQty(1);
         setTradeHistory([]);
         setIsGameOver(false);
         setIsPlaying(false);
@@ -106,25 +125,17 @@ export default function HistoricalReplay() {
     }
   };
 
-  useEffect(() => {
-    if (isPlaying && !isGameOver) {
-      timerRef.current = setInterval(() => {
-        nextStep();
-      }, speed);
-    } else {
-      clearInterval(timerRef.current);
-    }
-    return () => clearInterval(timerRef.current);
-  }, [isPlaying, currentIndex, isGameOver, speed]);
+  const nextStep = useCallback(() => {
+    const data = replayDataRef.current;
+    const idx = currentIndexRef.current;
+    if (!data) return;
 
-  const nextStep = () => {
-    if (!replayData) return;
-    if (currentIndex < replayData.candles.length - 1) {
-      const nextIdx = currentIndex + 1;
+    if (idx < data.candles.length - 1) {
+      const nextIdx = idx + 1;
       setCurrentIndex(nextIdx);
       
-      const currentDate = replayData.candles[nextIdx].date;
-      const news = replayData.news.find(n => n.date === currentDate);
+      const currentDate = data.candles[nextIdx].date;
+      const news = data.news?.find(n => n.date === currentDate);
       if (news) {
         setRecentNews(news);
         setShowNews(true);
@@ -134,30 +145,58 @@ export default function HistoricalReplay() {
       setIsGameOver(true);
       setIsPlaying(false);
     }
+  }, []);
+
+  useEffect(() => {
+    if (isPlaying && !isGameOver) {
+      timerRef.current = setInterval(() => {
+        nextStep();
+      }, speed);
+    } else {
+      clearInterval(timerRef.current);
+    }
+    return () => clearInterval(timerRef.current);
+  }, [isPlaying, isGameOver, speed, nextStep]);
+
+  const changeSpeedMultiplier = (mult) => {
+    setSpeedMultiplier(mult);
+    setSpeed(Math.round(800 / mult));
   };
 
   const handleBuy = () => {
     if (isGameOver || !replayData) return;
     const currentPrice = replayData.candles[currentIndex].close;
-    const qty = parseInt(tradeQty) || 0;
-    if (qty <= 0) return;
+    const requestedQty = Math.max(1, parseInt(tradeQty) || 1);
     
-    if (balance >= currentPrice * qty) {
-      const cost = qty * currentPrice;
-      setShares(prev => prev + qty);
-      setBalance(prev => prev - cost);
-      setTradeHistory(prev => [...prev, { type: 'BUY', price: currentPrice, qty, date: replayData.candles[currentIndex].date }]);
+    const maxAffordable = Math.floor(balance / currentPrice);
+    if (maxAffordable <= 0) {
+      alert(`Insufficient cash! You need at least ${currencySymbol}${currentPrice.toFixed(2)} to buy 1 unit of ${selectedSymbol}.`);
+      return;
     }
+
+    const qty = Math.min(requestedQty, maxAffordable);
+    const cost = qty * currentPrice;
+    
+    setShares(prev => prev + qty);
+    setBalance(prev => prev - cost);
+    setTradeHistory(prev => [
+      ...prev, 
+      { type: 'BUY', price: currentPrice, qty, date: replayData.candles[currentIndex].date }
+    ]);
   };
 
   const handleSell = () => {
     if (isGameOver || !replayData || shares <= 0) return;
     const currentPrice = replayData.candles[currentIndex].close;
-    const qty = Math.min(parseInt(tradeQty) || 0, shares);
+    const requestedQty = Math.max(1, parseInt(tradeQty) || 1);
+    const qty = Math.min(requestedQty, shares);
     if (qty <= 0) return;
 
     const revenue = qty * currentPrice;
-    setTradeHistory(prev => [...prev, { type: 'SELL', price: currentPrice, qty, date: replayData.candles[currentIndex].date }]);
+    setTradeHistory(prev => [
+      ...prev, 
+      { type: 'SELL', price: currentPrice, qty, date: replayData.candles[currentIndex].date }
+    ]);
     setBalance(prev => prev + revenue);
     setShares(prev => prev - qty);
   };
@@ -165,9 +204,8 @@ export default function HistoricalReplay() {
   // Calculations
   const currentPrice = replayData?.candles[currentIndex]?.close || 0;
   const portfolioValue = balance + (shares * currentPrice);
-  const initialValue = 100000;
-  const pnl = portfolioValue - initialValue;
-  const pnlPercent = (pnl / initialValue) * 100;
+  const pnl = portfolioValue - initialBalance;
+  const pnlPercent = (pnl / initialBalance) * 100;
   
   const marketStartPrice = replayData?.candles[20]?.close || 1;
   const marketCurrentPrice = replayData?.candles[currentIndex]?.close || 1;
@@ -319,11 +357,11 @@ export default function HistoricalReplay() {
 
                     <div className="grid grid-cols-2 gap-4 pt-4 border-t border-white/5">
                       <div>
-                        <div className="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1">Cash</div>
+                        <div className="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1">Available Cash</div>
                         <div className="text-md font-bold text-gray-300">{currencySymbol}{balance.toLocaleString(undefined, {maximumFractionDigits: 0})}</div>
                       </div>
                       <div>
-                        <div className="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1">Shares</div>
+                        <div className="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1">Units Held</div>
                         <div className="text-md font-bold text-gray-300">{shares}</div>
                       </div>
                     </div>
@@ -337,70 +375,103 @@ export default function HistoricalReplay() {
                   </div>
                 </motion.div>
 
+                {/* Trade Quantity Selection */}
                 <div className="bg-white/5 rounded-[24px] p-4 border border-white/10 mb-4">
                   <div className="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-3 flex justify-between">
                     <span>Units to Trade</span>
-                    {tradeQty > 0 && <span className="text-sky-400">Total: {currencySymbol}{(tradeQty * currentPrice).toLocaleString()}</span>}
+                    {tradeQty > 0 && <span className="text-sky-400 font-mono">Total: {currencySymbol}{(tradeQty * currentPrice).toLocaleString()}</span>}
                   </div>
-                  <div className="flex gap-2">
+                  
+                  <div className="flex gap-2 mb-3">
                     <input 
                       type="number" 
                       min="1"
-                      className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-md font-bold focus:outline-none focus:border-sky-500 transition-colors w-20"
+                      className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-md font-bold focus:outline-none focus:border-sky-500 transition-colors"
                       value={tradeQty}
-                      onChange={(e) => setTradeQty(Math.max(0, parseInt(e.target.value) || 0))}
+                      onChange={(e) => setTradeQty(Math.max(1, parseInt(e.target.value) || 1))}
                     />
-                    <div className="flex flex-col gap-1">
+                    <div className="flex gap-1">
                       <button 
-                        onClick={() => setTradeQty(Math.floor(balance / currentPrice))}
-                        className="px-3 py-1 bg-sky-500/10 text-sky-400 text-[8px] font-black rounded-lg border border-sky-500/20 hover:bg-sky-500 hover:text-white transition-all uppercase"
+                        onClick={() => setTradeQty(Math.max(1, Math.floor(balance / (currentPrice || 1))))}
+                        className="px-3 py-1 bg-sky-500/20 text-sky-300 text-[10px] font-black rounded-lg border border-sky-500/30 hover:bg-sky-500 hover:text-white transition-all uppercase"
                       >
-                        Max Buy
+                        Max
                       </button>
                       <button 
-                        onClick={() => setTradeQty(shares)}
-                        className="px-3 py-1 bg-rose-500/10 text-rose-400 text-[8px] font-black rounded-lg border border-rose-500/20 hover:bg-rose-500 hover:text-white transition-all uppercase"
+                        onClick={() => setTradeQty(Math.max(1, shares))}
+                        disabled={shares <= 0}
+                        className="px-3 py-1 bg-rose-500/20 text-rose-300 text-[10px] font-black rounded-lg border border-rose-500/30 hover:bg-rose-500 hover:text-white transition-all uppercase disabled:opacity-30"
                       >
-                        All Sell
+                        All
                       </button>
                     </div>
                   </div>
+
+                  {/* Quantity Presets */}
+                  <div className="grid grid-cols-5 gap-1">
+                    {[1, 5, 10, 50, 100].map((num) => (
+                      <button
+                        key={num}
+                        onClick={() => setTradeQty(num)}
+                        className={`py-1.5 text-[10px] font-bold rounded-lg border transition-all ${
+                          tradeQty === num 
+                            ? 'bg-sky-500 text-white border-sky-400 shadow-md shadow-sky-500/20' 
+                            : 'bg-white/5 text-gray-400 border-white/10 hover:bg-white/10'
+                        }`}
+                      >
+                        +{num}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
+                {/* Buy / Sell Action Buttons */}
                 <div className="grid grid-cols-2 gap-3">
                   <button 
                     onClick={handleBuy}
-                    disabled={isGameOver || balance < currentPrice * tradeQty || tradeQty <= 0}
+                    disabled={isGameOver || balance < currentPrice}
                     className="py-4 rounded-[20px] bg-emerald-500 text-white font-black text-sm shadow-lg shadow-emerald-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:grayscale uppercase"
                   >
                     BUY {tradeQty}
                   </button>
                   <button 
                     onClick={handleSell}
-                    disabled={isGameOver || shares < tradeQty || tradeQty <= 0}
+                    disabled={isGameOver || shares <= 0}
                     className="py-4 rounded-[20px] bg-rose-500 text-white font-black text-sm shadow-lg shadow-rose-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:grayscale uppercase"
                   >
                     SELL {tradeQty}
                   </button>
                 </div>
 
+                {/* Replay Controls & Speed Selector */}
                 <div className="bg-white/5 rounded-3xl p-4 border border-white/10">
-                   <div className="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-3 flex items-center gap-2">
-                     <Clock className="w-3 h-3" /> Replay Controls
+                   <div className="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-3 flex items-center justify-between">
+                     <span className="flex items-center gap-2"><Clock className="w-3 h-3" /> Replay Speed</span>
+                     <span className="text-sky-400 font-mono font-bold text-[11px] flex items-center gap-1">
+                       <Zap className="w-3 h-3 text-amber-400 fill-amber-400" /> {speedMultiplier}x ({speed}ms)
+                     </span>
                    </div>
-                   <div className="flex items-center justify-between gap-2">
+                   
+                   <div className="flex items-center justify-between gap-2 mb-3">
                       <button 
                         onClick={() => setIsPlaying(!isPlaying)}
-                        className="p-3 bg-white/10 rounded-xl hover:bg-white/20 transition-colors"
+                        className={`px-4 py-3 rounded-xl font-bold text-xs flex items-center gap-2 transition-all shadow-md ${
+                          isPlaying 
+                            ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30 hover:bg-amber-500/30' 
+                            : 'bg-sky-500 text-white hover:bg-sky-400 shadow-sky-500/20'
+                        }`}
                       >
-                        {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
+                        {isPlaying ? <Pause className="w-4 h-4 fill-amber-400" /> : <Play className="w-4 h-4 fill-white" />}
+                        <span>{isPlaying ? 'PAUSE' : 'PLAY'}</span>
                       </button>
+
                       <button 
                         onClick={nextStep}
                         className="flex-1 py-3 bg-white/10 rounded-xl hover:bg-white/20 transition-colors text-xs font-bold"
                       >
                         NEXT DAY
                       </button>
+
                       <button 
                         onClick={() => {
                           setSelectedEvent(null);
@@ -408,19 +479,40 @@ export default function HistoricalReplay() {
                           setIsGameOver(false);
                         }}
                         className="p-3 bg-white/10 rounded-xl hover:bg-white/20 transition-colors"
+                        title="Reset Scenario"
                       >
-                        <RotateCcw className="w-5 h-5" />
+                        <RotateCcw className="w-4 h-4" />
                       </button>
                    </div>
-                   <div className="mt-4">
-                      <div className="flex justify-between text-[8px] text-gray-500 uppercase font-black mb-2">
-                        <span>Replay Speed</span>
-                        <span>{speed}ms</span>
+
+                   {/* Speed Multiplier Presets */}
+                   <div className="grid grid-cols-5 gap-1 mb-3">
+                      {[0.5, 1, 2, 5, 10].map((m) => (
+                        <button
+                          key={m}
+                          onClick={() => changeSpeedMultiplier(m)}
+                          className={`py-1.5 text-[10px] font-bold rounded-lg border transition-all ${
+                            speedMultiplier === m
+                              ? 'bg-sky-500 text-white border-sky-400 shadow-md shadow-sky-500/20'
+                              : 'bg-white/5 text-gray-400 border-white/10 hover:bg-white/10'
+                          }`}
+                        >
+                          {m}x
+                        </button>
+                      ))}
+                   </div>
+
+                   {/* Speed Slider: Left = Slow (0.5x / 1600ms), Right = Fast (10x / 80ms) */}
+                   <div className="space-y-1">
+                      <div className="flex justify-between text-[8px] text-gray-500 uppercase font-black">
+                        <span>Slow (0.5x)</span>
+                        <span>Fast (10x)</span>
                       </div>
                       <input 
-                        type="range" min="100" max="2000" step="100" 
-                        value={speed} onChange={(e) => setSpeed(Number(e.target.value))}
-                        className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-sky-500"
+                        type="range" min="0.5" max="10" step="0.5" 
+                        value={speedMultiplier} 
+                        onChange={(e) => changeSpeedMultiplier(parseFloat(e.target.value))}
+                        className="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-sky-500"
                       />
                    </div>
                 </div>
@@ -521,7 +613,8 @@ export default function HistoricalReplay() {
                                 strokeWidth={3} 
                                 fillOpacity={1} 
                                 fill="url(#colorPrice)" 
-                                animationDuration={speed}
+                                isAnimationActive={speed >= 200}
+                                animationDuration={Math.min(speed, 200)}
                              />
                              
                              {tradeHistory.map((t, i) => (
@@ -548,10 +641,10 @@ export default function HistoricalReplay() {
                                <div className="text-gray-600 text-xs italic">No trades made yet...</div>
                              ) : (
                                [...tradeHistory].reverse().map((t, i) => (
-                                 <div key={i} className="flex justify-between items-center text-xs p-2 rounded-xl bg-white/5 border border-white/5">
-                                    <span className={`font-black ${t.type === 'BUY' ? 'text-emerald-400' : 'text-rose-400'}`}>{t.type}</span>
+                                 <div key={i} className="flex justify-between items-center text-xs p-2.5 rounded-xl bg-white/5 border border-white/5 font-mono">
+                                    <span className={`font-black uppercase px-2 py-0.5 rounded text-[10px] ${t.type === 'BUY' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>{t.type} {t.qty}x</span>
                                     <span className="text-gray-400">{t.date}</span>
-                                    <span className="font-mono">{currencySymbol}{t.price.toFixed(0)}</span>
+                                    <span className="text-white">{currencySymbol}{t.price.toFixed(2)}</span>
                                  </div>
                                ))
                              )}

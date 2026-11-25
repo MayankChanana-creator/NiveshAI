@@ -35,7 +35,7 @@ init_db()
 # -----------------------------
 class PortfolioItem(BaseModel):
     symbol: str
-    name: str
+    name: str = ""
     item_type: str = "stock"  # stock | mutual_fund | crypto
 
 class PortfolioItemResponse(BaseModel):
@@ -53,20 +53,24 @@ class PortfolioItemResponse(BaseModel):
 def add_to_portfolio(user_id: str, item: PortfolioItem):
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
+    item_name = item.name if item.name else item.symbol
 
     try:
         cursor.execute(
             """
             INSERT INTO portfolio_items (user_id, symbol, name, item_type)
             VALUES (?, ?, ?, ?)
+            ON CONFLICT(user_id, symbol) DO UPDATE SET
+                name=excluded.name,
+                item_type=excluded.item_type
             """,
-            (user_id, item.symbol, item.name, item.item_type)
+            (user_id, item.symbol, item_name, item.item_type)
         )
         conn.commit()
 
         cursor.execute(
-            "SELECT id, symbol, name, item_type, added_at FROM portfolio_items WHERE id = ?",
-            (cursor.lastrowid,)
+            "SELECT id, symbol, name, item_type, added_at FROM portfolio_items WHERE user_id = ? AND symbol = ?",
+            (user_id, item.symbol)
         )
         row = cursor.fetchone()
 
@@ -77,9 +81,6 @@ def add_to_portfolio(user_id: str, item: PortfolioItem):
             item_type=row[3],
             added_at=row[4]
         )
-
-    except sqlite3.IntegrityError:
-        raise HTTPException(status_code=400, detail="Item already in portfolio")
 
     finally:
         conn.close()
